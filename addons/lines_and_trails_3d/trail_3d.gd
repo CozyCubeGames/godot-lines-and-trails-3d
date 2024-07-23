@@ -44,12 +44,8 @@ func _ready() -> void:
 	use_global_space = true
 	points.clear()
 	_times.clear()
-	_refresh()
 
-
-func _process(delta: float) -> void:
-
-	_refresh()
+	rebuild(true)
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -68,7 +64,12 @@ func _validate_property(property: Dictionary) -> void:
 		super._validate_property(property)
 
 
-func _refresh() -> void:
+func _process(delta: float) -> void:
+
+	_step()
+
+
+func _step() -> void:
 
 	var pos := global_position
 	var time := Time.get_ticks_msec() / 1000.0

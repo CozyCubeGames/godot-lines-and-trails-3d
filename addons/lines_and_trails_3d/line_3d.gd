@@ -62,24 +62,28 @@ func _init() -> void:
 	_arrays[Mesh.ARRAY_INDEX] = _indices;
 
 
-func _ready() -> void:
-
-	rebuild()
-
-
 func _validate_property(property: Dictionary) -> void:
 
 	if property.name == "mesh":
 		property.usage = PROPERTY_USAGE_STORAGE
 
 
-func rebuild() -> void:
+func _ready() -> void:
+
+	rebuild(true)
+
+
+func rebuild(initial: bool = false) -> void:
 
 	if not is_inside_tree():
 		return
 
-	if not mesh:
+	if not is_instance_valid(mesh):
 		mesh = ArrayMesh.new()
+	elif initial:
+		var old_mat := mesh.surface_get_material(0)
+		mesh = mesh.duplicate()
+		mesh.surface_set_material(0, old_mat)
 
 	var old_mat_override: Material
 	if Engine.is_editor_hint() and get_surface_override_material_count() > 0:
@@ -176,16 +180,16 @@ func rebuild() -> void:
 
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
 
-	if Engine.is_editor_hint():
-		if not is_instance_valid(mesh.surface_get_material(0)):
-			mesh.surface_set_material(0, _get_default_material())
+	if Engine.is_editor_hint() or initial:
 		if is_instance_valid(old_mat_override):
 			set_surface_override_material(0, old_mat_override)
+		else:
+			set_surface_override_material(0, _get_default_material())
 
 
 func _get_default_material() -> Material:
 
-	return load("res://addons/lines_and_trails_3d/default_line_3d.material")
+	return load("res://addons/lines_and_trails_3d/default_line_3d_mix.material")
 
 
 func _get_default_width_curve() -> Curve:
