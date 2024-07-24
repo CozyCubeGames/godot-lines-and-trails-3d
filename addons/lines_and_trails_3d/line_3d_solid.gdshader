@@ -2,7 +2,7 @@ shader_type spatial;
 
 render_mode
 	depth_draw_opaque,
-	cull_back,
+	cull_disabled,
 	unshaded,
 	world_vertex_coords;
 

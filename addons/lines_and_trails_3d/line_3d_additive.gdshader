@@ -2,7 +2,7 @@ shader_type spatial;
 
 render_mode
 	blend_add,
-	cull_back,
+	cull_disabled,
 	shadows_disabled,
 	unshaded,
 	depth_draw_never,
