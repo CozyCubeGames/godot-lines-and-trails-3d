@@ -65,24 +65,26 @@ func _init() -> void:
 func _validate_property(property: Dictionary) -> void:
 
 	if property.name == "mesh":
-		property.usage = PROPERTY_USAGE_STORAGE
+		property.usage = PROPERTY_USAGE_NONE
 
 
 func _ready() -> void:
 
-	rebuild(true)
+	rebuild()
 
 
-func rebuild(initial: bool = false) -> void:
+func rebuild() -> void:
 
 	if not is_inside_tree():
 		return
 
-	if not is_instance_valid(mesh):
+	var old_mat: Material
+	if is_instance_valid(mesh):
+		if mesh.get_surface_count() > 0:
+			old_mat = mesh.surface_get_material(0)
+	else:
 		mesh = ArrayMesh.new()
-	elif initial:
-		var old_mat := mesh.surface_get_material(0)
-		mesh = mesh.duplicate()
+	if old_mat and mesh.get_surface_count() > 0:
 		mesh.surface_set_material(0, old_mat)
 
 	var old_mat_override: Material
@@ -180,7 +182,7 @@ func rebuild(initial: bool = false) -> void:
 
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
 
-	if Engine.is_editor_hint() or initial:
+	if Engine.is_editor_hint():
 		if is_instance_valid(old_mat_override):
 			set_surface_override_material(0, old_mat_override)
 		else:

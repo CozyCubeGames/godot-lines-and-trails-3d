@@ -45,7 +45,7 @@ func _ready() -> void:
 	points.clear()
 	_times.clear()
 
-	rebuild(true)
+	rebuild()
 
 
 func _validate_property(property: Dictionary) -> void:
