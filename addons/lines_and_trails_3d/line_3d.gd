@@ -7,6 +7,8 @@ extends MeshInstance3D
 enum TextureTileMode { RATIO, DISTANCE }
 
 
+const DEFAULT_MATERIAL: Material = preload("res://addons/lines_and_trails_3d/default_line_3d_mix.material")
+
 @export_range(0.0, 1.0) var width: float = 0.05:
 	set(value):
 		width = value
@@ -78,18 +80,8 @@ func rebuild() -> void:
 	if not is_inside_tree():
 		return
 
-	var old_mat: Material
-	if is_instance_valid(mesh):
-		if mesh.get_surface_count() > 0:
-			old_mat = mesh.surface_get_material(0)
-	else:
+	if not is_instance_valid(mesh):
 		mesh = ArrayMesh.new()
-	if old_mat and mesh.get_surface_count() > 0:
-		mesh.surface_set_material(0, old_mat)
-
-	var old_mat_override: Material
-	if Engine.is_editor_hint() and get_surface_override_material_count() > 0:
-		old_mat_override = get_surface_override_material(0)
 
 	var am := mesh as ArrayMesh
 	am.clear_surfaces()
@@ -181,17 +173,7 @@ func rebuild() -> void:
 		_uvs[j2] = Vector2(u, v)
 
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
-
-	if Engine.is_editor_hint():
-		if is_instance_valid(old_mat_override):
-			set_surface_override_material(0, old_mat_override)
-		else:
-			set_surface_override_material(0, _get_default_material())
-
-
-func _get_default_material() -> Material:
-
-	return load("res://addons/lines_and_trails_3d/default_line_3d_mix.material")
+	am.surface_set_material(0, DEFAULT_MATERIAL)
 
 
 func _get_default_width_curve() -> Curve:
