@@ -57,11 +57,11 @@ var _auto_rebuild: bool = true
 func _init() -> void:
 
 	_arrays.resize(Mesh.ARRAY_MAX)
-	_arrays[Mesh.ARRAY_VERTEX] = _vertices;
-	_arrays[Mesh.ARRAY_NORMAL] = _tangents;
-	_arrays[Mesh.ARRAY_COLOR] = _colors;
-	_arrays[Mesh.ARRAY_TEX_UV] = _uvs;
-	_arrays[Mesh.ARRAY_INDEX] = _indices;
+	_arrays[Mesh.ARRAY_VERTEX] = _vertices
+	_arrays[Mesh.ARRAY_NORMAL] = _tangents
+	_arrays[Mesh.ARRAY_COLOR] = _colors
+	_arrays[Mesh.ARRAY_TEX_UV] = _uvs
+	_arrays[Mesh.ARRAY_INDEX] = _indices
 
 
 func _validate_property(property: Dictionary) -> void:
