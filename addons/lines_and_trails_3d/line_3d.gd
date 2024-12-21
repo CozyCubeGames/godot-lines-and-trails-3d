@@ -110,6 +110,19 @@ func _ready() -> void:
 	rebuild()
 
 
+func clear() -> void:
+	
+	points.clear()
+	curve_normals.clear()
+	_vertices.clear()
+	_normals.clear()
+	_colors.clear()
+	_uvs.clear()
+	_indices.clear()
+	
+	rebuild()
+
+
 func rebuild() -> void:
 
 	if not is_inside_tree():

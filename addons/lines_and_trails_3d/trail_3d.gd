@@ -22,6 +22,13 @@ enum LimitMode {
 		if limit_mode == value:
 			return
 		limit_mode = value
+		match value:
+			LimitMode.TIME:
+				set_process(true)
+				set_notify_transform(false)
+			LimitMode.LENGTH:
+				set_process(false)
+				set_notify_transform(true)
 		notify_property_list_changed()
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
@@ -56,11 +63,9 @@ func _ready() -> void:
 
 	_auto_rebuild = false
 	_prev_pos = global_position
-	process_priority = 9999
 	use_global_space = true
-	points.clear()
-	curve_normals.clear()
-	_times.clear()
+	process_priority = 9999
+	set_notify_transform(true)
 
 	rebuild()
 
@@ -88,9 +93,25 @@ func _validate_property(property: Dictionary) -> void:
 			super._validate_property(property)
 
 
-func _process(delta: float) -> void:
+func _notification(what: int) -> void:
 
-	_step()
+	match what:
+		NOTIFICATION_TRANSFORM_CHANGED:
+			if limit_mode == LimitMode.LENGTH:
+				_step()
+
+
+func _process(_delta: float) -> void:
+	
+	if limit_mode == LimitMode.TIME:
+		_step()
+
+
+func clear() -> void:
+	
+	_times.clear()
+	_last_pinned_u = 0
+	super.clear()
 
 
 func _step() -> void:
