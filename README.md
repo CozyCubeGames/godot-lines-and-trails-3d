@@ -10,6 +10,7 @@ You can choose from three different default materials, or you can create your ow
 Only use the material override to set material, do NOT use the surface material override or set the material directly on the mesh.
 At runtime, you can modify the points array, or any other properties.
 Line3D requires you to call rebuild() after making any changes. Trail3D is auto-updated so you don't need to call rebuild().
+If you use any billboard mode other than the default ("VIEW"), you'll need to use a custom material of your own (any material will do!).
 
 Tips and Tricks:
 It doesn't currently handle sharp corners well (can get "pinched" at certain viewing angles). A workaround is to just duplicate the points at the corners.

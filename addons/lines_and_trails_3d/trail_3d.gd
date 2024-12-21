@@ -12,28 +12,44 @@ enum LimitMode {
 
 @export_range(0.01, 1.0) var max_section_length: float = 0.1:
 	set(value):
+		if max_section_length == value:
+			return
 		max_section_length = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var limit_mode: LimitMode = LimitMode.TIME:
 	set(value):
+		if limit_mode == value:
+			return
 		limit_mode = value
 		notify_property_list_changed()
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var time_limit: float = 0.25:
 	set(value):
+		if time_limit == value:
+			return
 		time_limit = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var length_limit: float = 1.0:
 	set(value):
+		if length_limit == value:
+			return
 		length_limit = value
+		if _auto_rebuild and Engine.is_editor_hint():
+			rebuild()
+@export var pin_texture: bool = false:
+	set(value):
+		if pin_texture == value:
+			return
+		pin_texture = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 
 var _prev_pos: Vector3
 var _times: PackedFloat64Array
+var _last_pinned_u: float
 
 
 func _ready() -> void:
@@ -43,6 +59,7 @@ func _ready() -> void:
 	process_priority = 9999
 	use_global_space = true
 	points.clear()
+	curve_normals.clear()
 	_times.clear()
 
 	rebuild()
@@ -50,18 +67,25 @@ func _ready() -> void:
 
 func _validate_property(property: Dictionary) -> void:
 
-	if property.name == "time_limit":
-		if limit_mode != LimitMode.TIME:
-			property.usage &= ~PROPERTY_USAGE_EDITOR
-	elif property.name == "length_limit":
-		if limit_mode != LimitMode.LENGTH:
-			property.usage &= ~PROPERTY_USAGE_EDITOR
-	elif property.name == "points":
-		property.usage = PROPERTY_USAGE_NONE
-	elif property.name == "use_global_space":
-		property.usage = PROPERTY_USAGE_NONE
-	else:
-		super._validate_property(property)
+	match property.name:
+		"time_limit":
+			if limit_mode != LimitMode.TIME:
+				property.usage &= ~PROPERTY_USAGE_EDITOR
+		"length_limit":
+			if limit_mode != LimitMode.LENGTH:
+				property.usage &= ~PROPERTY_USAGE_EDITOR
+		"points":
+			property.usage = PROPERTY_USAGE_NONE
+		"use_global_space":
+			property.usage = PROPERTY_USAGE_NONE
+		"texture_offset":
+			if pin_texture:
+				property.usage = PROPERTY_USAGE_NONE
+		"pin_texture":
+			if texture_tile_mode == TextureTileMode.RATIO:
+				property.usage = PROPERTY_USAGE_NONE
+		_:
+			super._validate_property(property)
 
 
 func _process(delta: float) -> void:
@@ -71,15 +95,22 @@ func _process(delta: float) -> void:
 
 func _step() -> void:
 
-	var pos := global_position
+	if not use_global_space:
+		use_global_space = true
+
+	var tf := global_transform
+	var pos := tf.origin
+	var up := tf.basis.y
 	var time := Time.get_ticks_msec() / 1000.0
 
 	while points.size() < 2:
 		points.insert(0, pos)
+		curve_normals.insert(0, up)
 	while _times.size() < 2:
 		_times.insert(0, time)
 
 	points[0] = pos
+	curve_normals[0] = up
 	_times[0] = time
 	_prev_pos = pos
 
@@ -92,10 +123,16 @@ func _step() -> void:
 		if dist_from_leading > max_section_length:
 			var dir_from_leading := from_leading / dist_from_leading
 			var d: float = max_section_length
-			while d < dist_from_leading:
+			while d < dist_from_leading - max_section_length:
 				points.insert(1, leading + dir_from_leading * d)
+				curve_normals.insert(1, up)
 				_times.insert(1, time)
 				d += max_section_length
+				if texture_tile_mode == TextureTileMode.DISTANCE:
+					_last_pinned_u += max_section_length
+
+			if pin_texture:
+				texture_offset = -_last_pinned_u - (dist_from_leading - d)
 
 	if limit_mode == LimitMode.LENGTH:
 
@@ -115,6 +152,7 @@ func _step() -> void:
 				points[last_index] = second_last_point + (last_point - second_last_point) * (shortened_section_length / last_section_length)
 			else:
 				points.remove_at(last_index)
+				curve_normals.remove_at(last_index)
 				_times.remove_at(last_index)
 				last_index -= 1
 			extra_length -= last_section_length
@@ -138,6 +176,7 @@ func _step() -> void:
 				_times[last_index] = second_last_time + (last_time - second_last_time) * shortened_ratio
 			else:
 				points.remove_at(last_index)
+				curve_normals.remove_at(last_index)
 				_times.remove_at(last_index)
 				last_index -= 1
 			extra_time -= last_section_duration
