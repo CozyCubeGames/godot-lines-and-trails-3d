@@ -6,11 +6,17 @@ extends MeshInstance3D
 
 enum TextureTileMode { RATIO, DISTANCE }
 enum BillboardMode { NONE, VIEW, Z }
+enum MaterialType {
+	SOLID,
+	SOLID_UNLIT,
+	MIX,
+	MIX_UNLIT,
+	ADD,
+	CUSTOM }
 
-
-const DEFAULT_MATERIAL: Material = preload("res://addons/lines_and_trails_3d/default_line_3d_mix.material")
 
 @export_range(0.0, 1.0) var width: float = 0.05:
+	get: return width
 	set(value):
 		if width == value:
 			return
@@ -18,32 +24,47 @@ const DEFAULT_MATERIAL: Material = preload("res://addons/lines_and_trails_3d/def
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var width_curve: Curve:
+	get: return width_curve
 	set(value):
 		if width_curve == value:
 			return
+		if width_curve:
+			width_curve.changed.disconnect(_on_child_resource_changed)
 		width_curve = value
+		if width_curve:
+			width_curve.changed.connect(_on_child_resource_changed)
+		if _auto_rebuild and Engine.is_editor_hint():
+			rebuild()
+@export var color: Color = Color.WHITE:
+	get: return color
+	set(value):
+		if color == value:
+			return
+		color = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var gradient: Gradient:
+	get: return gradient
 	set(value):
 		if gradient == value:
 			return
+		if gradient:
+			gradient.changed.disconnect(_on_child_resource_changed)
 		gradient = value
-		if _auto_rebuild and Engine.is_editor_hint():
-			rebuild()
-@export_range(0.0, 1.0) var alpha: float = 1.0:
-	set(value):
-		if alpha == value:
-			return
-		alpha = value
+		if gradient:
+			gradient.changed.connect(_on_child_resource_changed)
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var use_global_space: bool = false:
+	get: return use_global_space
 	set(value):
+		if use_global_space == value:
+			return
 		use_global_space = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var billboard_mode: BillboardMode = BillboardMode.VIEW:
+	get: return billboard_mode
 	set(value):
 		if billboard_mode == value:
 			return
@@ -52,26 +73,54 @@ const DEFAULT_MATERIAL: Material = preload("res://addons/lines_and_trails_3d/def
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var texture_tile_mode: TextureTileMode = TextureTileMode.RATIO:
+	get: return texture_tile_mode
 	set(value):
 		if texture_tile_mode == value:
 			return
 		texture_tile_mode = value
+		notify_property_list_changed()
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var texture_offset: float = 0.0:
+	get: return texture_offset
 	set(value):
 		if texture_offset == value:
 			return
 		texture_offset = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
-@export var points: PackedVector3Array:
+@export var material_type: MaterialType = MaterialType.SOLID_UNLIT:
+	get: return material_type
 	set(value):
+		if material_type == value:
+			return
+		material_type = value
+		if material_type != MaterialType.CUSTOM:
+			custom_material = null
+		notify_property_list_changed()
+		_refresh_material()
+@export var custom_material: Material:
+	get: return custom_material
+	set(value):
+		if custom_material == value:
+			return
+		custom_material = value
+		_refresh_material()
+@export var points: PackedVector3Array:
+	get: return points
+	set(value):
+		if points == value:
+			return
 		points = value
+		if curve_normals.size() != points.size():
+			curve_normals.resize(points.size())
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var curve_normals: PackedVector3Array:
+	get: return curve_normals
 	set(value):
+		if curve_normals == value:
+			return
 		curve_normals = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
@@ -83,6 +132,10 @@ var _uvs: PackedVector2Array
 var _indices: PackedInt32Array
 var _arrays: Array
 var _auto_rebuild: bool = true
+
+
+static var _built_in_materials: Dictionary
+static var _built_in_billboard_materials: Dictionary
 
 
 func _init() -> void:
@@ -103,6 +156,9 @@ func _validate_property(property: Dictionary) -> void:
 		"curve_normals":
 			if billboard_mode != BillboardMode.NONE:
 				property.usage = PROPERTY_USAGE_NONE
+		"custom_material":
+			if material_type != MaterialType.CUSTOM:
+				property.usage = PROPERTY_USAGE_NONE
 
 
 func _ready() -> void:
@@ -111,7 +167,7 @@ func _ready() -> void:
 
 
 func clear() -> void:
-	
+
 	points.clear()
 	curve_normals.clear()
 	_vertices.clear()
@@ -119,7 +175,7 @@ func clear() -> void:
 	_colors.clear()
 	_uvs.clear()
 	_indices.clear()
-	
+
 	rebuild()
 
 
@@ -217,11 +273,13 @@ func rebuild() -> void:
 			_vertices[j0] = p
 			_vertices[j1] = p
 			_vertices[j2] = p
+
 			if use_global_space:
 				tangent = inv_global_tf.basis * tangent
 			_normals[j0] = tangent
 			_normals[j1] = tangent
 			_normals[j2] = tangent
+
 			_uvs[j0] = Vector2(u, -half_width)
 			_uvs[j1] = Vector2(u, 0)
 			_uvs[j2] = Vector2(u, half_width)
@@ -255,11 +313,45 @@ func rebuild() -> void:
 			_uvs[j1] = Vector2(u, 0.5)
 			_uvs[j2] = Vector2(u, 1)
 
-		var c := gradient.sample(ratio) if gradient else Color.WHITE
-		c.a *= alpha
+		var c := color
+		if gradient:
+			c *= gradient.sample(ratio)
 		_colors[j0] = c
 		_colors[j1] = c
 		_colors[j2] = c
 
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
-	am.surface_set_material(0, DEFAULT_MATERIAL)
+
+	_refresh_material()
+
+
+func _refresh_material() -> void:
+
+	var am: ArrayMesh = mesh
+	if not am:
+		return
+
+	var mat: ShaderMaterial
+	if material_type == MaterialType.CUSTOM:
+		mat = custom_material
+	else:
+		var mat_dict := _built_in_billboard_materials if billboard_mode == BillboardMode.VIEW else _built_in_materials
+		mat = mat_dict.get(material_type, null)
+		if mat == null:
+			var shader_path := "res://addons/lines_and_trails_3d/line_3d_"
+			if billboard_mode == BillboardMode.VIEW:
+				shader_path += "billboard_"
+			shader_path += MaterialType.keys()[material_type].to_lower() + ".gdshader"
+			mat = ShaderMaterial.new()
+			mat.shader = load(shader_path)
+			mat_dict[material_type] = mat
+
+	if am.get_surface_count() > 0:
+		if am.surface_get_material(0) != mat:
+			am.surface_set_material(0, mat)
+
+
+func _on_child_resource_changed() -> void:
+
+	if _auto_rebuild and Engine.is_editor_hint():
+		rebuild()

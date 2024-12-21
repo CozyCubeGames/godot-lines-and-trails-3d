@@ -11,6 +11,7 @@ enum LimitMode {
 
 
 @export_range(0.01, 1.0) var max_section_length: float = 0.1:
+	get: return max_section_length
 	set(value):
 		if max_section_length == value:
 			return
@@ -18,6 +19,7 @@ enum LimitMode {
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var limit_mode: LimitMode = LimitMode.TIME:
+	get: return limit_mode
 	set(value):
 		if limit_mode == value:
 			return
@@ -33,6 +35,7 @@ enum LimitMode {
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var time_limit: float = 0.25:
+	get: return time_limit
 	set(value):
 		if time_limit == value:
 			return
@@ -40,6 +43,7 @@ enum LimitMode {
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var length_limit: float = 1.0:
+	get: return length_limit
 	set(value):
 		if length_limit == value:
 			return
@@ -47,14 +51,15 @@ enum LimitMode {
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var pin_texture: bool = false:
+	get: return pin_texture
 	set(value):
 		if pin_texture == value:
 			return
 		pin_texture = value
+		notify_property_list_changed()
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 
-var _prev_pos: Vector3
 var _times: PackedFloat64Array
 var _last_pinned_u: float
 
@@ -62,7 +67,6 @@ var _last_pinned_u: float
 func _ready() -> void:
 
 	_auto_rebuild = false
-	_prev_pos = global_position
 	use_global_space = true
 	process_priority = 9999
 	set_notify_transform(true)
@@ -79,7 +83,7 @@ func _validate_property(property: Dictionary) -> void:
 		"length_limit":
 			if limit_mode != LimitMode.LENGTH:
 				property.usage &= ~PROPERTY_USAGE_EDITOR
-		"points":
+		"points", "curve_normals":
 			property.usage = PROPERTY_USAGE_NONE
 		"use_global_space":
 			property.usage = PROPERTY_USAGE_NONE
@@ -102,13 +106,13 @@ func _notification(what: int) -> void:
 
 
 func _process(_delta: float) -> void:
-	
+
 	if limit_mode == LimitMode.TIME:
 		_step()
 
 
 func clear() -> void:
-	
+
 	_times.clear()
 	_last_pinned_u = 0
 	super.clear()
@@ -133,7 +137,6 @@ func _step() -> void:
 	points[0] = pos
 	curve_normals[0] = up
 	_times[0] = time
-	_prev_pos = pos
 
 	if points.size() >= 2:
 

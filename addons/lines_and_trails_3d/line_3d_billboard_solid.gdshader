@@ -1,4 +1,4 @@
 shader_type spatial;
 
-#define BLEND_MIX
+#define BILLBOARD
 #include "line_3d.gdshaderinc"
