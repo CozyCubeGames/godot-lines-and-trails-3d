@@ -145,18 +145,13 @@ func _step() -> void:
 		var dist_from_leading := from_leading.length()
 
 		if dist_from_leading > max_section_length:
-			var dir_from_leading := from_leading / dist_from_leading
-			var d: float = max_section_length
-			while d < dist_from_leading - max_section_length:
-				points.insert(1, leading + dir_from_leading * d)
-				curve_normals.insert(1, up)
-				_times.insert(1, time)
-				d += max_section_length
-				if texture_tile_mode == TextureTileMode.DISTANCE:
-					_last_pinned_u += max_section_length
-
+			points.insert(1, pos)
+			curve_normals.insert(1, up)
+			_times.insert(1, time)
+			if texture_tile_mode == TextureTileMode.DISTANCE:
+				_last_pinned_u += dist_from_leading
 			if pin_texture:
-				texture_offset = -_last_pinned_u - (dist_from_leading - d)
+				texture_offset = -_last_pinned_u
 
 	if limit_mode == LimitMode.LENGTH:
 
