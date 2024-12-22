@@ -24,13 +24,7 @@ enum LimitMode {
 		if limit_mode == value:
 			return
 		limit_mode = value
-		match value:
-			LimitMode.TIME:
-				set_process(true)
-				set_notify_transform(false)
-			LimitMode.LENGTH:
-				set_process(false)
-				set_notify_transform(true)
+		set_process(value == LimitMode.TIME)
 		notify_property_list_changed()
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
@@ -68,7 +62,6 @@ func _ready() -> void:
 
 	use_global_space = true
 	process_priority = 9999
-	set_notify_transform(true)
 
 	rebuild()
 
@@ -96,25 +89,17 @@ func _validate_property(property: Dictionary) -> void:
 			super._validate_property(property)
 
 
-func _notification(what: int) -> void:
+func clear() -> void:
 
-	match what:
-		NOTIFICATION_TRANSFORM_CHANGED:
-			if limit_mode == LimitMode.LENGTH:
-				_step()
+	_times.clear()
+	_last_pinned_u = 0
+	super.clear()
 
 
 func _process(_delta: float) -> void:
 
 	if limit_mode == LimitMode.TIME:
 		_step()
-
-
-func clear() -> void:
-
-	_times.clear()
-	_last_pinned_u = 0
-	super.clear()
 
 
 func _step() -> void:
@@ -147,13 +132,14 @@ func _step() -> void:
 
 		if pin_texture:
 			texture_offset = -_last_pinned_u - dist_from_leading
+		else:
+			_last_pinned_u = -texture_offset - dist_from_leading
 
 		if dist_from_leading > max_section_length:
 			points.insert(1, pos)
 			curve_normals.insert(1, up)
 			_times.insert(1, time)
-			if limit_mode == LimitMode.LENGTH:
-				_last_pinned_u += dist_from_leading
+			_last_pinned_u += dist_from_leading
 
 	if limit_mode == LimitMode.LENGTH:
 
@@ -207,10 +193,8 @@ func _step() -> void:
 	rebuild()
 
 
-func _get_default_width_curve() -> Curve:
+# VIRTUAL
+func _on_transform_changed() -> void:
 
-	var c := Curve.new()
-	c.clear_points()
-	c.add_point(Vector2(0, 1), -1, -1, Curve.TangentMode.TANGENT_LINEAR)
-	c.add_point(Vector2(1, 0), -1, -1, Curve.TangentMode.TANGENT_LINEAR)
-	return c
+	if limit_mode == LimitMode.LENGTH:
+		_step()

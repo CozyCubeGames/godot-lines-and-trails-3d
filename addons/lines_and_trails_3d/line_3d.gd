@@ -61,6 +61,7 @@ enum MaterialType {
 		if use_global_space == value:
 			return
 		use_global_space = value
+		set_notify_transform(use_global_space)
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var billboard_mode: BillboardMode = BillboardMode.VIEW:
@@ -109,18 +110,12 @@ enum MaterialType {
 @export var points: PackedVector3Array:
 	get: return points
 	set(value):
-		if points == value:
-			return
 		points = value
-		if curve_normals.size() != points.size():
-			curve_normals.resize(points.size())
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
 @export var curve_normals: PackedVector3Array:
 	get: return curve_normals
 	set(value):
-		if curve_normals == value:
-			return
 		curve_normals = value
 		if _auto_rebuild and Engine.is_editor_hint():
 			rebuild()
@@ -166,6 +161,13 @@ func _ready() -> void:
 	rebuild()
 
 
+func _notification(what: int) -> void:
+
+	match what:
+		NOTIFICATION_TRANSFORM_CHANGED:
+			_on_transform_changed()
+
+
 func clear() -> void:
 
 	points.clear()
@@ -188,7 +190,8 @@ func rebuild() -> void:
 		mesh = ArrayMesh.new()
 
 	var am := mesh as ArrayMesh
-	am.clear_surfaces()
+	if am.get_surface_count() > 0:
+		am.clear_surfaces()
 
 	var point_count := points.size()
 	if point_count < 2:
@@ -219,12 +222,8 @@ func rebuild() -> void:
 			_indices[j + 11] = k + 5
 
 	var inv_global_tf: Transform3D
-	var z_dir: Vector3
 	if use_global_space:
 		inv_global_tf = global_transform.inverse()
-		z_dir = inv_global_tf.basis.z
-	else:
-		z_dir = Vector3.BACK
 
 	var length: float = 0.0
 	for i in range(1, point_count):
@@ -267,6 +266,7 @@ func rebuild() -> void:
 
 		if use_global_space:
 			p = inv_global_tf * p
+			tangent = inv_global_tf.basis * tangent
 
 		if billboard_mode == BillboardMode.VIEW:
 
@@ -274,8 +274,6 @@ func rebuild() -> void:
 			_vertices[j1] = p
 			_vertices[j2] = p
 
-			if use_global_space:
-				tangent = inv_global_tf.basis * tangent
 			_normals[j0] = tangent
 			_normals[j1] = tangent
 			_normals[j2] = tangent
@@ -290,16 +288,16 @@ func rebuild() -> void:
 			var normal: Vector3
 
 			if billboard_mode == BillboardMode.Z:
-				curve_normal = z_dir.cross(tangent).normalized()
-				normal = z_dir
+				curve_normal = Vector3.BACK.cross(tangent).normalized()
+				normal = Vector3.BACK
 			else:
-				curve_normal = curve_normals[i] if i < curve_normals.size() else z_dir.cross(tangent).normalized()
+				if i < curve_normals.size():
+					curve_normal = curve_normals[i]
+					if use_global_space:
+						curve_normal = inv_global_tf.basis * curve_normal
+				else:
+					curve_normal = Vector3.BACK
 				normal = tangent.cross(curve_normal).normalized()
-				if use_global_space:
-					normal = inv_global_tf.basis * normal
-
-			if use_global_space:
-				curve_normal = inv_global_tf.basis * curve_normal
 
 			_vertices[j0] = p + half_width * curve_normal
 			_vertices[j1] = p
@@ -354,4 +352,11 @@ func _refresh_material() -> void:
 func _on_child_resource_changed() -> void:
 
 	if _auto_rebuild and Engine.is_editor_hint():
+		rebuild()
+
+
+# VIRTUAL
+func _on_transform_changed() -> void:
+
+	if use_global_space:
 		rebuild()
