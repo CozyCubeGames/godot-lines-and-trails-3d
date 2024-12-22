@@ -183,7 +183,7 @@ func clear() -> void:
 
 func rebuild() -> void:
 
-	if not is_inside_tree():
+	if not is_inside_tree() or not is_node_ready():
 		return
 
 	if not is_instance_valid(mesh):

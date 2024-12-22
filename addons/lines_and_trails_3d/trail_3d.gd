@@ -104,6 +104,9 @@ func _process(_delta: float) -> void:
 
 func _step() -> void:
 
+	if not is_inside_tree() or not is_node_ready():
+		return
+
 	_auto_rebuild = false
 
 	if not use_global_space:
