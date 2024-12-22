@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3 uid="uid://b687koijwjkt4"]
+[gd_scene load_steps=42 format=3 uid="uid://b687koijwjkt4"]
 
 [ext_resource type="Script" path="res://addons/lines_and_trails_3d/line_3d.gd" id="1_qw2n0"]
 [ext_resource type="Shader" path="res://addons/lines_and_trails_3d/line_3d_billboard_mix_unlit.gdshader" id="3_vk4x5"]
@@ -122,6 +122,10 @@ func _ready() -> void:
 	line_2.rebuild()
 "
 
+[sub_resource type="Curve" id="Curve_2g0j4"]
+_data = [Vector2(0, 1), 0.0, -0.328958, 0, 1, Vector2(1, 0.671042), -0.328958, 0.0, 1, 0]
+point_count = 2
+
 [sub_resource type="Gradient" id="Gradient_aoek0"]
 colors = PackedColorArray(0, 0, 0, 1, 0.830289, 1, 0.495455, 1)
 
@@ -241,7 +245,7 @@ func _notification(what: int) -> void:
 
 func _process(delta: float) -> void:
 
-	_reflect_state(Time.get_ticks_msec() / 1000.0 * 1.5)
+	_reflect_state(Time.get_ticks_msec() / 1000.0 * 2.5)
 
 
 func _reflect_state(t: float) -> void:
@@ -262,6 +266,48 @@ func _reflect_ball_state(ball: Node3D, sign: int, corner_idx: int, lerp_ratio: f
 
 [sub_resource type="Gradient" id="Gradient_vu8i4"]
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GDScript" id="GDScript_cklss"]
+script/source = "@tool
+extends Node3D
+
+
+const CORNERS: PackedVector3Array = [
+	Vector3(-1, 1, 0),
+	Vector3(1, 1, 0),
+	Vector3(1, -1, 0),
+	Vector3(-1, -1, 0) ]
+
+@onready var ball_1: Node3D = $ball1
+@onready var ball_2: Node3D = $ball2
+
+
+func _notification(what: int) -> void:
+
+	if what == NOTIFICATION_EDITOR_PRE_SAVE:
+		_reflect_state(0)
+
+
+func _process(delta: float) -> void:
+
+	_reflect_state(Time.get_ticks_msec() / 1000.0)
+
+
+func _reflect_state(t: float) -> void:
+
+	var corner_idx := int(wrapf(t, 0, 4)) % 4
+	var lerp_ratio := minf(1, wrapf(t, 0, 1))
+
+	_reflect_ball_state(ball_1, -1, corner_idx, lerp_ratio)
+	_reflect_ball_state(ball_2, 1, corner_idx, lerp_ratio)
+
+
+func _reflect_ball_state(ball: Node3D, sign: int, corner_idx: int, lerp_ratio: float) -> void:
+
+	var corner := CORNERS[corner_idx]
+	var next_corner := CORNERS[(corner_idx + 1) % 4]
+	ball.position = Vector3(0.5 * sign, 0.75, 0) + 0.3 * corner.lerp(next_corner, lerp_ratio)
+"
 
 [sub_resource type="GDScript" id="GDScript_plx72"]
 script/source = "@tool
@@ -286,7 +332,7 @@ func _process(delta: float) -> void:
 func _reflect_state(t: float) -> void:
 
 	staff_pivot.basis = Basis(Vector3.RIGHT, t * 15)
-	staff.basis = Basis(Vector3.FORWARD, sin(t * 2))
+	staff.basis = Basis(Vector3.FORWARD, t)
 "
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lsvk8"]
@@ -303,8 +349,12 @@ _data = [Vector2(0, 1), 0.0, -0.190533, 0, 1, Vector2(1, 0.416555), -1.02911, 0.
 point_count = 2
 
 [sub_resource type="Gradient" id="Gradient_qqri1"]
-offsets = PackedFloat32Array(0, 0.19084, 0.442748, 1)
-colors = PackedColorArray(1, 0.927273, 0, 1, 1, 0.436, 0, 1, 1, 0.218182, 0, 0.75, 0, 0, 0, 0)
+offsets = PackedFloat32Array(0, 0.190871, 0.423237, 1)
+colors = PackedColorArray(1, 0.834711, 0.0909091, 1, 1, 0.627273, 0, 1, 1, 0.3, 0, 0.75, 1, 0.136364, 0, 0)
+
+[sub_resource type="Gradient" id="Gradient_kbraj"]
+offsets = PackedFloat32Array(0, 0.608295)
+colors = PackedColorArray(0.331818, 0.331818, 0.331818, 1, 1, 1, 1, 1)
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_qdatc"]
 frequency = 0.0106
@@ -315,6 +365,7 @@ fractal_lacunarity = 0.0
 height = 256
 seamless = true
 seamless_blend_skirt = 0.206
+color_ramp = SubResource("Gradient_kbraj")
 noise = SubResource("FastNoiseLite_qdatc")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_texnx"]
@@ -484,7 +535,6 @@ mesh = SubResource("QuadMesh_f5biq")
 [node name="line1" type="MeshInstance3D" parent="example_4"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 script = ExtResource("1_qw2n0")
-gradient = SubResource("Gradient_vplke")
 points = PackedVector3Array(-0.5, 0, 0, -0.175, 0.1, 0, 0.175, -0.1, 0, 0.5, 0, 0)
 
 [node name="line2" type="MeshInstance3D" parent="example_4"]
@@ -499,12 +549,14 @@ points = PackedVector3Array(-0.5, 0, 0, -0.467742, 0, 0, -0.435484, 0, 0, -0.403
 curve_normals = PackedVector3Array(0, 1, 0, 0, 0.966886, 0.25521, 0, 0.869736, 0.493517, 0, 0.714985, 0.69914, 0, 0.512882, 0.858459, 0, 0.276811, 0.960924, 0, 0.0224074, 0.999749, 0, -0.23348, 0.972362, 0, -0.473905, 0.880576, 0, -0.682943, 0.730471, 0, -0.846751, 0.531989, 0, -0.954481, 0.298273, 0, -0.998996, 0.0448035, 0, -0.977349, -0.211633, 0, -0.890974, -0.454054, 0, -0.745591, -0.666404, 0, -0.550829, -0.834618, 0, -0.319586, -0.947557, 0, -0.0671772, -0.997741, 0, 0.189681, -0.981846, 0, 0.433976, -0.900925, 0, 0.64953, -0.760336, 0, 0.822066, -0.569392, 0, 0.940158, -0.340738, 0, 0.995985, -0.0895171, 0, 0.98585, 0.167632, 0, 0.910423, 0.41368, 0, 0.774699, 0.63233, 0, 0.587669, 0.809101, 0, 0.361719, 0.932287, 0, 0.111812, 0.993729, 0, -0.1455, 0.989358)
 
 [node name="line3" type="MeshInstance3D" parent="example_4"]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0.005, 0)
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.0558782, 0.005, -0.0373915)
 script = ExtResource("1_qw2n0")
-width = 0.2
-gradient = SubResource("Gradient_vplke")
+width = 0.11
+width_curve = SubResource("Curve_2g0j4")
+color = Color(0.936, 1, 0, 0.269)
 billboard_mode = 2
-points = PackedVector3Array(-0.5, 0, 0, -0.175, 0.1, 0, 0.175, -0.1, 0, 0.5, 0, 0)
+material_type = 4
+points = PackedVector3Array(-0.579, -0.165, 0, -0.135, -0.138, 0, -0.222, 0.3, 0, 0.252, 0.252, 0, 0.201, -0.246, 0, -0.342, -0.318, 0, -0.399, 0.042, 0, 0.033, 0.033, 0, 0.048, -0.417, 0, 0.462, -0.417, 0)
 
 [node name="light" type="OmniLight3D" parent="example_4"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3298, 0.783323, -0.1121)
@@ -674,6 +726,7 @@ script = ExtResource("4_v7nag")
 max_section_length = 0.02
 limit_mode = 1
 time_limit = 0.5
+length_limit = 1.5
 gradient = SubResource("Gradient_vu8i4")
 texture_tile_mode = 1
 material_type = 5
@@ -681,7 +734,7 @@ custom_material = SubResource("ShaderMaterial_bvxow")
 
 [node name="example_9" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 0)
-script = SubResource("GDScript_r0l0j")
+script = SubResource("GDScript_cklss")
 
 [node name="heading" type="Label3D" parent="example_9"]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, -0.078, 0.611)
@@ -712,6 +765,7 @@ process_priority = 9999
 script = ExtResource("4_v7nag")
 max_section_length = 0.02
 limit_mode = 1
+length_limit = 1.5
 gradient = SubResource("Gradient_vu8i4")
 texture_tile_mode = 1
 material_type = 5
@@ -729,6 +783,7 @@ script = ExtResource("4_v7nag")
 max_section_length = 0.02
 limit_mode = 1
 time_limit = 0.5
+length_limit = 1.5
 pin_texture = true
 gradient = SubResource("Gradient_vu8i4")
 texture_tile_mode = 1
@@ -765,12 +820,12 @@ mesh = SubResource("CylinderMesh_uloyt")
 
 [node name="trail" type="MeshInstance3D" parent="example_10/staff_pivot/staff"]
 process_priority = 9999
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 skeleton = NodePath("../../../..")
 script = ExtResource("4_v7nag")
 time_limit = 0.2
 length_limit = 5.0
-width = 0.5
+width = 0.7
 width_curve = SubResource("Curve_u7bmq")
 gradient = SubResource("Gradient_qqri1")
 billboard_mode = 0
@@ -780,12 +835,12 @@ custom_material = SubResource("ShaderMaterial_texnx")
 
 [node name="trail2" type="MeshInstance3D" parent="example_10/staff_pivot/staff"]
 process_priority = 9999
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 skeleton = NodePath("../../../..")
 script = ExtResource("4_v7nag")
 time_limit = 0.2
 length_limit = 5.0
-width = 0.5
+width = 0.7
 width_curve = SubResource("Curve_u7bmq")
 gradient = SubResource("Gradient_qqri1")
 billboard_mode = 0
