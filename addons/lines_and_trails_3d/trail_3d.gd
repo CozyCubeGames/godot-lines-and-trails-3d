@@ -27,7 +27,7 @@ enum LimitMode {
 		set_process(value == LimitMode.TIME)
 		notify_property_list_changed()
 		if _auto_rebuild and Engine.is_editor_hint():
-			rebuild()
+			_step()
 @export var time_limit: float = 0.25:
 	get: return time_limit
 	set(value):
@@ -35,7 +35,7 @@ enum LimitMode {
 			return
 		time_limit = value
 		if _auto_rebuild and Engine.is_editor_hint():
-			rebuild()
+			_step()
 @export var length_limit: float = 1.0:
 	get: return length_limit
 	set(value):
@@ -43,7 +43,7 @@ enum LimitMode {
 			return
 		length_limit = value
 		if _auto_rebuild and Engine.is_editor_hint():
-			rebuild()
+			_step()
 @export var pin_texture: bool = false:
 	get: return pin_texture
 	set(value):
