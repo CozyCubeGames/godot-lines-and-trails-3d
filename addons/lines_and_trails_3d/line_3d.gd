@@ -294,7 +294,7 @@ func rebuild() -> void:
 				normal = z_dir
 			else:
 				curve_normal = curve_normals[i] if i < curve_normals.size() else z_dir.cross(tangent).normalized()
-				normal = Vector3.BACK
+				normal = tangent.cross(curve_normal).normalized()
 				if use_global_space:
 					normal = inv_global_tf.basis * normal
 

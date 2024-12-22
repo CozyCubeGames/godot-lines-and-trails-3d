@@ -66,7 +66,6 @@ var _last_pinned_u: float
 
 func _ready() -> void:
 
-	_auto_rebuild = false
 	use_global_space = true
 	process_priority = 9999
 	set_notify_transform(true)
@@ -120,6 +119,8 @@ func clear() -> void:
 
 func _step() -> void:
 
+	_auto_rebuild = false
+
 	if not use_global_space:
 		use_global_space = true
 
@@ -144,14 +145,15 @@ func _step() -> void:
 		var from_leading := pos - leading
 		var dist_from_leading := from_leading.length()
 
+		if pin_texture:
+			texture_offset = -_last_pinned_u - dist_from_leading
+
 		if dist_from_leading > max_section_length:
 			points.insert(1, pos)
 			curve_normals.insert(1, up)
 			_times.insert(1, time)
-			if texture_tile_mode == TextureTileMode.DISTANCE:
+			if limit_mode == LimitMode.LENGTH:
 				_last_pinned_u += dist_from_leading
-			if pin_texture:
-				texture_offset = -_last_pinned_u
 
 	if limit_mode == LimitMode.LENGTH:
 
@@ -199,6 +201,8 @@ func _step() -> void:
 				_times.remove_at(last_index)
 				last_index -= 1
 			extra_time -= last_section_duration
+
+	_auto_rebuild = true
 
 	rebuild()
 
