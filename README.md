@@ -1,8 +1,4 @@
-[Godot Lines & Trails 3D]
-
-Info:
-Just a basic lines and trails addon used in my own project.
-This addon is provided as is. There will be no support, but I will be making changes to this as I develop my own project.
-
-Usage:
-Just put it in your addons folder in your project, and then you can create Line3D or Trail3D nodes. Check out the included examples scene for details!
+# ATTENTION
+I am deprecating this repository in favor of keeping all my addons in one repository here:
+[Cozy Cube Godot Addons](https://github.com/CozyCubeGames/cozy-cube-godot-addons).
+If you would like to keep tabs on future updates, please consider checking out that one instead!
